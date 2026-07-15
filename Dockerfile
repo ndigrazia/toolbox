@@ -7,8 +7,11 @@ WORKDIR /app
 # Copy the tools.yaml configuration into the container
 COPY tools.yaml /app/tools.yaml
 
-# Expose port 5000 for the MCP server
-EXPOSE 5000
+# Define the default port environment variable
+ENV PORT=5000
 
-# Pass default arguments to run the toolbox server with the pre-packaged configuration
-CMD ["--config", "/app/tools.yaml", "--address", "0.0.0.0", "--port", "5000"]
+# Expose the port variable
+EXPOSE $PORT
+
+# Start the toolbox server with the pre-packaged configuration using the PORT env variable
+ENTRYPOINT ["/bin/sh", "-c", "exec /toolbox --config /app/tools.yaml --address 0.0.0.0 --port $PORT"]
