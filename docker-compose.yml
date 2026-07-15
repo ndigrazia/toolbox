@@ -1,0 +1,27 @@
+services:
+  toolbox:
+    image:  us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:latest
+    hostname: toolbox
+    platform: linux/amd64
+    network_mode: "host"
+    volumes:
+      - ./tools.yaml:/app/tools.yaml
+    command: [ "--config", "/app/tools.yaml", "--address", "0.0.0.0", "--port", "5000"]
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata1:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  pgdata1:
