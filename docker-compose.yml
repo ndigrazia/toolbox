@@ -1,12 +1,13 @@
 services:
   toolbox:
-    image:  us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     hostname: toolbox
     platform: linux/amd64
     network_mode: "host"
     volumes:
       - ./tools.yaml:/app/tools.yaml
-    command: [ "--config", "/app/tools.yaml", "--address", "0.0.0.0", "--port", "5000"]
     depends_on:
       - postgres
 
