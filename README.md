@@ -138,3 +138,22 @@ To launch the MCP Inspector connected to the running service, execute:
 npx @modelcontextprotocol/inspector http://127.0.0.1:5000/mcp/sse
 ```
 This launches a browser-based user interface where you can explore the 5 exposed tools, submit parameters, and view raw SQL results returned from your PostgreSQL database in real-time!
+
+---
+
+## 🐳 Custom Self-Contained Docker Image
+
+A `Dockerfile` is provided to compile a custom, self-contained MCP Database Toolbox image. This image pre-packages your `tools.yaml` configuration file directly inside the image, allowing you to deploy the service without having to mount external configuration volumes at runtime.
+
+### Building the Image
+To build your custom toolbox image:
+```bash
+docker build -t custom-mcp-toolbox .
+```
+
+### Running the Custom Container
+To run your custom self-contained MCP toolbox container (with database connectivity to your host/local postgres on port 5432):
+```bash
+docker run -d --name mcp-toolbox --network="host" custom-mcp-toolbox
+```
+This launches your pre-configured MCP Database Toolbox server directly on port `5000`!
