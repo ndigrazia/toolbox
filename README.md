@@ -1,6 +1,6 @@
 # Model Context Protocol (MCP) Database Toolbox with PostgreSQL
 
-This repository contains a fully configured containerized development environment combining a PostgreSQL database with an MCP Database Toolbox. For more information on Model Context Protocol and available tools, visit the official [Model Context Protocol (MCP) Toolbox Website](https://mcp-toolbox.dev/).
+This repository contains a fully configured containerized development environment combining a PostgreSQL database with an MCP Database Toolbox. For more information on Model Context Protocol and available tools, visit the official [Model Context Protocol (MCP) Toolbox Website](https://mcp-toolbox.dev/) or the [Google Cloud MCP Toolbox Repository](https://github.com/googleapis/mcp-toolbox).
 
 ---
 
