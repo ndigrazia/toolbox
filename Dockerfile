@@ -10,15 +10,9 @@ ARG TOOLS_FILE=tools.yaml
 # Copy the tools configuration into the container
 COPY ${TOOLS_FILE} /app/tools.yaml
 
-# Define default environment variables for configuration path and port
-ENV CONFIG_PATH=/app/tools.yaml
-ENV PORT=5000
-
-# Expose the port variable
-EXPOSE $PORT
-
 # Run as non-root user
 USER nobody
 
-# Start the toolbox server with the pre-packaged configuration path and PORT env variables
-ENTRYPOINT ["/bin/sh", "-c", "exec /toolbox --config $CONFIG_PATH --address 0.0.0.0 --port $PORT"]
+# Start the toolbox server using the static binary
+ENTRYPOINT ["/toolbox"]
+CMD ["--config", "/app/tools.yaml", "--address", "0.0.0.0", "--port", "5000"]
