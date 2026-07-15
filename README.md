@@ -143,17 +143,26 @@ This launches a browser-based user interface where you can explore the 5 exposed
 
 ## 🐳 Custom Self-Contained Docker Image
 
-A `Dockerfile` is provided to compile a custom, self-contained MCP Database Toolbox image. This image pre-packages your `tools.yaml` configuration file directly inside the image, allowing you to deploy the service without having to mount external configuration volumes at runtime.
+A `Dockerfile` is provided to compile a custom, self-contained MCP Database Toolbox image. By default, it packages the local `tools.yaml` configuration file directly inside the container, running securely as a non-root user (`nobody`).
 
-### Building the Image
-To build your custom toolbox image:
+### 1. Build-time Customization (External tools.yaml)
+You can build the image with a custom configuration file from any external path on your machine by passing the `TOOLS_FILE` build-arg:
 ```bash
-docker build -t custom-mcp-toolbox .
+docker build --build-arg TOOLS_FILE="path/to/external-tools.yaml" -t custom-mcp-toolbox .
 ```
 
-### Running the Custom Container
-To run your custom self-contained MCP toolbox container (with database connectivity to your host/local postgres on port 5432):
+### 2. Runtime Customization (Environment Variables)
+The container exposes two configurable environment variables:
+- **`PORT`** (Defaults to `5000`): The port the MCP server listens on.
+- **`CONFIG_PATH`** (Defaults to `/app/tools.yaml`): The internal container path to the config file (allowing you to mount an external config at runtime).
+
+#### Example: Run with customized port and external mounted config:
 ```bash
-docker run -d --name mcp-toolbox --network="host" custom-mcp-toolbox
+docker run -d --name mcp-toolbox \
+  --network="host" \
+  -e PORT=8080 \
+  -e CONFIG_PATH=/config/custom-tools.yaml \
+  -v /absolute/path/to/my-tools.yaml:/config/custom-tools.yaml \
+  custom-mcp-toolbox
 ```
-This launches your pre-configured MCP Database Toolbox server directly on port `5000`!
+This launches the custom toolbox container using your external configuration and exposes it on port `8080`!
