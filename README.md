@@ -1,168 +1,166 @@
 # Model Context Protocol (MCP) Database Toolbox with PostgreSQL
 
-This repository contains a fully configured containerized development environment combining a PostgreSQL database with an MCP Database Toolbox. For more information on Model Context Protocol and available tools, visit the official [Model Context Protocol (MCP) Toolbox Website](https://mcp-toolbox.dev/) or the [Google Cloud MCP Toolbox Repository](https://github.com/googleapis/mcp-toolbox).
+This repository provides a containerized development environment combining a PostgreSQL database instance with the Model Context Protocol (MCP) Database Toolbox. The system features a custom secure `Dockerfile` running as a non-root user, a fully-configured `docker-compose.yml`, schema initialization (`init.sql`), and defined database tools (`tools.yaml`).
+
+For more details on the Model Context Protocol and available tools, visit the [Model Context Protocol (MCP) Toolbox Website](https://mcp-toolbox.dev/) or the [Google Cloud MCP Toolbox Repository](https://github.com/googleapis/mcp-toolbox).
 
 ---
 
-## 🏗️ Architecture & Component Overview
+## 🏗️ Architecture & Services
 
-The system is defined inside `docker-compose.yml` and consists of two primary services:
+The stack is defined in `docker-compose.yml` and consists of two primary services:
 
 1. **`postgres` (PostgreSQL Database)**:
-   - Powered by the robust, lightweight `postgres:16-alpine` image.
-   - Forwards port `5432:5432` to the host system.
-   - Automatically bootstraps users, databases, and schemas on startup via a custom SQL initialization script (`init.sql`).
-   - Persists data through a Docker named volume (`pgdata`).
+   - Uses the robust, lightweight `postgres:16-alpine` image.
+   - Forwards database port `5432` to the host system.
+   - Automatically bootstraps roles, databases, and schema configurations on startup using `init.sql`.
+   - Persists all database data locally through a Docker volume (`pgdata1`).
 
 2. **`toolbox` (MCP Database Toolbox Server)**:
-   - Uses the official `us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:latest` image.
-   - Operates in `network_mode: "host"`, granting it direct, low-latency access to the host's networking stack. This allows it to effortlessly communicate with the database container via `127.0.0.1:5432`.
-   - Mounts and monitors the `./tools.yaml` configuration file.
-   - Deploys the MCP server on port `5000`.
+   - Built locally from our secure `Dockerfile` (extending the official `us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:latest` distroless image).
+   - Runs in `network_mode: "host"`, giving it zero-latency localhost access to the `postgres` database container.
+   - Operates securely under the non-root user `nobody` (UID `65534`).
+   - Copies and monitors the `tools.yaml` configuration file.
+   - Deploys the MCP server on port `5000` (configurable).
 
 ---
 
-## 🔑 Setup, Credentials, & Database Access
+## 🔑 Database Credentials & Access
 
-### 📡 Network Connection Details
-- **Database Host**: `127.0.0.1` (or `localhost`)
-- **Database Port**: `5432`
+### 📡 Connection Details
+- **Host**: `127.0.0.1` (or `localhost`)
+- **Port**: `5432`
 
-### 👤 Database Roles & Credentials
-- **Default Superuser**: `postgres` (with password `123456`)
-- **Application User**: `toolbox_client` (with password `my-password`)
+### 👤 Roles & Databases
+- **Default Superuser**: `postgres` (password: `123456`)
+- **Application User**: `toolbox_client` (password: `my-password`)
 - **Application Database**: `toolbox_db`
 
 ---
 
-## 📜 Database Schema & Seed Data
+## 📜 Schema & Seeding Data (`init.sql`)
 
-The database cluster is initialized using `init.sql`. The script configures the roles, creates the application database, grants necessary privileges, and sets up a `hotels` table tailored to the database tools.
+The database is initialized automatically on first startup via `init.sql`. The initialization creates the application schema and seeds a `hotels` table with initial test data.
 
 ### Database Table: `hotels`
 | Column Name | Data Type | Modifiers | Description |
 | :--- | :--- | :--- | :--- |
-| **`id`** | `VARCHAR(255)` | `PRIMARY KEY` | Unique identifier for each hotel. |
+| **`id`** | `VARCHAR(255)` | `PRIMARY KEY` | Unique ID of the hotel. |
 | **`name`** | `VARCHAR(255)` | `NOT NULL` | Name of the hotel. |
 | **`location`** | `VARCHAR(255)` | `NOT NULL` | City/Location of the hotel. |
-| **`booked`** | `BIT(1)` | `DEFAULT B'0'` | Booking status bit (`B'0'` for available, `B'1'` for booked). |
-| **`checkin_date`** | `DATE` | `NULLABLE` | Check-in date. |
-| **`checkout_date`** | `DATE` | `NULLABLE` | Check-out date. |
+| **`booked`** | `BIT(1)` | `DEFAULT B'0'` | Booking status (0 = Available, 1 = Booked). |
+| **`checkin_date`** | `DATE` | `NULL` | Check-in date. |
+| **`checkout_date`** | `DATE` | `NULL` | Check-out date. |
 
-### Seed Records
-Four pre-populated hotels are automatically inserted upon first initialization:
-1. `Grand Plaza Hotel` located in `New York`
-2. `Seaside Resort` located in `Miami`
-3. `Mountain Lodge` located in `Denver`
-4. `Central Park Suites` located in `New York`
+### Seeded Records
+Four pre-populated hotels are seeded into the database:
+1. `Grand Plaza Hotel` in `New York`
+2. `Seaside Resort` in `Miami`
+3. `Mountain Lodge` in `Denver`
+4. `Central Park Suites` in `New York`
 
 ---
 
-## 🛠️ MCP Toolset Definitions (`tools.yaml`)
+## 🛠️ MCP Tool Definitions (`tools.yaml`)
 
-The toolbox service exposes 5 main PostgreSQL-backed MCP tools linked to the `my-pg-source` source. These tools can be leveraged by any MCP-compliant client or agent:
+The toolbox service exposes **5 PostgreSQL-backed MCP tools** connected to the `my-pg-source` source. These can be executed by any MCP-compliant client or agent:
 
 1. **`search-hotels-by-name`**
-   - **Description**: Search for hotels based on name.
-   - **Parameters**: `name` (string)
-   - **Statement**: `SELECT * FROM hotels WHERE name ILIKE '%' || $1 || '%';`
+   - *Description*: Searches for hotels matching a substring of the name.
+   - *Parameters*: `name` (string)
+   - *SQL*: `SELECT * FROM hotels WHERE name ILIKE '%' || $1 || '%';`
 
 2. **`search-hotels-by-location`**
-   - **Description**: Search for hotels based on location.
-   - **Parameters**: `location` (string)
-   - **Statement**: `SELECT * FROM hotels WHERE location ILIKE '%' || $1 || '%';`
+   - *Description*: Searches for hotels matching a location.
+   - *Parameters*: `location` (string)
+   - *SQL*: `SELECT * FROM hotels WHERE location ILIKE '%' || $1 || '%';`
 
 3. **`book-hotel`**
-   - **Description**: Book a hotel by its ID. Returns `NULL` on success, or raises an error if it fails.
-   - **Parameters**: `hotel_id` (string)
-   - **Statement**: `UPDATE hotels SET booked = B'1' WHERE id = $1;`
+   - *Description*: Books a hotel by ID. Returns `NULL` on success or raises an error on failure.
+   - *Parameters*: `hotel_id` (string)
+   - *SQL*: `UPDATE hotels SET booked = B'1' WHERE id = $1;`
 
 4. **`update-hotel`**
-   - **Description**: Update a hotel's check-in and check-out dates by its ID.
-   - **Parameters**: `hotel_id` (string), `checkin_date` (string), `checkout_date` (string)
-   - **Statement**: `UPDATE hotels SET checkin_date = CAST($2 as date), checkout_date = CAST($3 as date) WHERE id = $1;`
+   - *Description*: Updates check-in and check-out dates for a hotel booking.
+   - *Parameters*: `hotel_id` (string), `checkin_date` (string), `checkout_date` (string)
+   - *SQL*: `UPDATE hotels SET checkin_date = CAST($2 as date), checkout_date = CAST($3 as date) WHERE id = $1;`
 
 5. **`cancel-hotel`**
-   - **Description**: Cancel a hotel booking by its ID.
-   - **Parameters**: `hotel_id` (string)
-   - **Statement**: `UPDATE hotels SET booked = B'0' WHERE id = $1;`
+   - *Description*: Cancels a booking for a hotel.
+   - *Parameters*: `hotel_id` (string)
+   - *SQL*: `UPDATE hotels SET booked = B'0' WHERE id = $1;`
 
 ---
 
 ## 🚀 Step-by-Step Usage Instructions
 
-### 1. Free Up Port 5432 (Prerequisites)
-If you have a local PostgreSQL service running on your host system, it will conflict with Docker's port mapping. Stop and disable it with:
+### 1. Stop Conflicts (Prerequisites)
+Make sure port `5432` is free. If you have local PostgreSQL running, stop it:
 ```bash
 sudo systemctl stop postgresql
-sudo systemctl disable postgresql
 ```
 
-### 2. Start the Services From Scratch
-To ensure a completely clean start and trigger the PostgreSQL initialization scripts (`init.sql`):
+### 2. Launch the Stack
+Start both services in detached mode (use `--build` to compile the local Dockerfile):
 ```bash
-docker-compose down -v && docker-compose up -d
+docker-compose down -v && docker-compose up -d --build
 ```
-*Note: The `-v` flag removes the previous data volume, forcing PostgreSQL to perform a clean initialization from scratch.*
+*Note: The `-v` flag deletes previous volumes, ensuring a completely clean initialization of the seed data.*
 
-### 3. Verify Startup & Initialization Logs
-Check the PostgreSQL container logs to verify that the initialization script ran successfully:
+### 3. Verify Container Logs
+Check the PostgreSQL container logs to ensure that the startup and schema seed completed successfully:
 ```bash
 docker logs postgres
 ```
-You should see:
-```text
-/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/init.sql
-CREATE ROLE
-CREATE DATABASE
-GRANT
-ALTER DATABASE
-You are now connected to database "toolbox_db" as user "toolbox_client".
-CREATE TABLE
-INSERT 0 4
+
+Check the Toolbox container logs to confirm the server is serving on port 5000:
+```bash
+docker logs toolbox_toolbox_1
 ```
 
-### 4. Query Seeded Data Directly
-Verify the connection and query the `hotels` table as the `toolbox_client` user inside the running container:
+### 4. Query Database Directly
+Verify that database connections and seed data are correct using `psql` within the database container:
 ```bash
 PGPASSWORD=my-password docker exec -it postgres psql -U toolbox_client -d toolbox_db -c "SELECT * FROM hotels;"
 ```
 
-### 5. Test the MCP Service (MCP Inspector)
-The Model Context Protocol (MCP) server runs on the host interface via port `5000`. You can easily test and interact with the service using the **MCP Inspector** using the Server-Sent Events (SSE) transport endpoint:
+### 5. Test using the MCP Inspector
+To test and interact with the 5 exposed MCP tools, launch the web-based **MCP Inspector** using the Server-Sent Events (SSE) transport endpoint:
 
 - **SSE Transport Endpoint URL**: `http://127.0.0.1:5000/mcp/sse`
 
-To launch the MCP Inspector connected to the running service, execute:
 ```bash
 npx @modelcontextprotocol/inspector http://127.0.0.1:5000/mcp/sse
 ```
-This launches a browser-based user interface where you can explore the 5 exposed tools, submit parameters, and view raw SQL results returned from your PostgreSQL database in real-time!
+This opens a local browser interface where you can dynamically test all SQL tools and examine real-time results returned directly from the PostgreSQL instance!
 
 ---
 
-## 🐳 Custom Self-Contained Docker Image
+## 🐳 Custom Dockerfile & Image Customization
 
-A `Dockerfile` is provided to compile a custom, self-contained MCP Database Toolbox image. By default, it packages the local `tools.yaml` configuration file directly inside the container, running securely as a non-root user (`nobody`).
+A `Dockerfile` is provided to build custom self-contained MCP Database Toolbox containers. The container is configured with optimal security and configuration capabilities.
 
-### 1. Build-time Customization (External tools.yaml)
-You can build the image with a custom configuration file from any external path on your machine by passing the `TOOLS_FILE` build-arg:
+### Key Security & Configuration Features
+- **Distroless Base Image**: Minimal attack surface, zero extraneous binaries.
+- **Non-Root Execution**: Runs under the unprivileged user `nobody` (UID `65534`).
+- **Flexible Configuration Options**:
+  - `PORT` environment variable (defaults to `5000`).
+  - `CONFIG_PATH` environment variable (defaults to `/app/tools.yaml`).
+  - `TOOLS_FILE` build-time argument (defaults to `tools.yaml`).
+
+### Build-time Customization
+You can package an external configuration file during image build by passing the `TOOLS_FILE` build-arg:
 ```bash
 docker build --build-arg TOOLS_FILE="path/to/external-tools.yaml" -t custom-mcp-toolbox .
 ```
 
-### 2. Runtime Customization (Environment Variables)
-The container exposes two configurable environment variables:
-- **`PORT`** (Defaults to `5000`): The port the MCP server listens on.
-- **`CONFIG_PATH`** (Defaults to `/app/tools.yaml`): The internal container path to the config file (allowing you to mount an external config at runtime).
-
-#### Example: Run with customized port and external mounted config:
+### Runtime Customization
+You can customize the port or override the configuration path dynamically at runtime using environment variables:
 ```bash
 docker run -d --name mcp-toolbox \
   --network="host" \
   -e PORT=8080 \
-  -e CONFIG_PATH=/config/custom-tools.yaml \
-  -v /absolute/path/to/my-tools.yaml:/config/custom-tools.yaml \
+  -e CONFIG_PATH=/config/my-tools.yaml \
+  -v /absolute/path/to/my-tools.yaml:/config/my-tools.yaml \
   custom-mcp-toolbox
 ```
-This launches the custom toolbox container using your external configuration and exposes it on port `8080`!
