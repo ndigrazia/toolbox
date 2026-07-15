@@ -138,3 +138,34 @@ To launch the MCP Inspector connected to the running service, execute:
 npx @modelcontextprotocol/inspector http://127.0.0.1:5000/mcp/sse
 ```
 This launches a browser-based user interface where you can explore the 5 exposed tools, submit parameters, and view raw SQL results returned from your PostgreSQL database in real-time!
+
+---
+
+## ☸️ Deploying to Kubernetes
+
+A unified Kubernetes manifest (`kubernetes-deployment.yaml`) is included to easily deploy the entire stack (PostgreSQL and MCP Database Toolbox) on a Kubernetes cluster.
+
+### 1. Unified Resources Included
+- **ConfigMaps**: Bootstraps the database (`init.sql`) and configures the MCP toolset (`tools.yaml`).
+- **PersistentVolumeClaim (PVC)**: Allocates persistent storage for your PostgreSQL database state.
+- **Deployment**: Deploys a single pod featuring a multi-container design:
+  - `postgres` (port `5432`): Automatically initialized using the seed script config.
+  - `toolbox` (port `5000`): Runs the MCP server with direct localhost access to the DB.
+- **Service**: Exposes the MCP server and PostgreSQL ports internally within the cluster.
+
+### 2. Deployment Instructions
+To deploy the entire stack to your cluster, run:
+```bash
+kubectl apply -f kubernetes-deployment.yaml
+```
+
+To verify the deployment state:
+```bash
+kubectl get pods,svc,configmaps,pvc
+```
+
+To connect to the MCP server from outside the cluster (e.g., using MCP Inspector or your local AI Agent), you can port-forward port `5000`:
+```bash
+kubectl port-forward svc/mcp-toolbox-service 5000:5000
+```
+Then visit `http://127.0.0.1:5000/mcp/sse` as the SSE transport endpoint!
