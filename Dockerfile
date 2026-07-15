@@ -13,5 +13,8 @@ ENV PORT=5000
 # Expose the port variable
 EXPOSE $PORT
 
+# Run as non-root user
+USER nobody
+
 # Start the toolbox server with the pre-packaged configuration using the PORT env variable
 ENTRYPOINT ["/bin/sh", "-c", "exec /toolbox --config /app/tools.yaml --address 0.0.0.0 --port $PORT"]
